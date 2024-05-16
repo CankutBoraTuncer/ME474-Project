@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>  
+
+    <arg name="world" default="$(find mobile_robots)/src/world/mobile3.world"/>
+    <arg name="robot" default="machines"/>
+    <arg name="debug" default="false"/>
+    <arg name="gui" default="true"/>
+    <arg name="headless" default="false"/>
+    <arg name="pause" default="false"/>  
+
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(arg world)" />
+        <arg name="debug" value="$(arg debug)" />
+        <arg name="gui" value="$(arg gui)" />
+        <arg name="paused" value="$(arg pause)"/>
+        <arg name="use_sim_time" value="true"/>
+        <arg name="headless" value="$(arg headless)"/>
+    </include>
+
+    <include file="$(find mobile_robots)/launch/mobile_robot_spawn.launch">
+        <arg name="x" value="3.6" />
+        <arg name="y" value="0.4" />
+        <arg name="z" value="0.0" />
+        <arg name="urdf_robot_file" value="$(find mobile_robots)/urdf/turtlebot3_burger.urdf.xacro" />
+        <arg name="robot_name" value="turtlebot3_burger" />
+    </include>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find mobile_robots)/config/map.yaml"/>
+    <node pkg="mobile_robots" type="lidar_filter.py" name="lidar_filter" output="screen"/>
+
+    <node name="amcl" pkg="amcl" type="amcl" output="screen">
+        <param name="odom_frame_id" value="odom" />
+        <param name="base_frame_id" value="base_footprint" />
+        <param name="global_frame_id" value="map" />
+        <param name="use_map_topic" value="true" />
+        <param name="update_min_d" value="0.2" />
+        <param name="update_min_a" value="0.5" />
+        <param name="min_particles" value="500" />
+        <param name="max_particles" value="2000" />
+        <param name="kld_err" value="0.05" />
+        <param name="kld_z" value="0.99" />
+        <param name="odom_alpha1" value="0.2" />
+        <param name="odom_alpha2" value="0.2" />
+        <param name="odom_alpha3" value="0.2" />
+        <param name="odom_alpha4" value="0.2" />
+        <param name="odom_alpha5" value="0.2" />
+        <param name="laser_model_type" value="likelihood_field" />
+        <param name="laser_z_hit" value="0.95" />
+        <param name="laser_z_short" value="0.1" />
+        <param name="laser_z_max" value="0.05" />
+        <param name="laser_z_rand" value="0.05" />
+        <param name="laser_sigma_hit" value="0.2" />
+        <param name="laser_lambda_short" value="0.1" />
+        <param name="laser_likelihood_max_dist" value="2.0" />
+        <param name="laser_likelihood_skip" value="0" />
+        <param name="initial_pose_x" value="3.601030"/>
+        <param name="initial_pose_y" value="0.394961"/>
+        <param name="initial_pose_a" value="-3.129407"/>
+    </node>
+
+    <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+        <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
+        <rosparam file="$(find turtlebot3_navigation)/param/costmap_common_params_burger.yaml" command="load" ns="global_costmap" />
+        <rosparam file="$(find turtlebot3_navigation)/param/costmap_common_params_burger.yaml" command="load" ns="local_costmap" />
+        <rosparam file="$(find turtlebot3_navigation)/param/local_costmap_params.yaml" command="load" />
+        <rosparam file="$(find turtlebot3_navigation)/param/global_costmap_params.yaml" command="load" />
+        <rosparam file="$(find turtlebot3_navigation)/param/move_base_params.yaml" command="load" />
+        <rosparam file="$(find turtlebot3_navigation)/param/dwa_local_planner_params_burger.yaml" command="load" />
+        <remap from="cmd_vel" to="/cmd_vel"/>
+        <param name="DWAPlannerROS/min_vel_x" value="0.0" if="false" />
+    </node>
+
+    <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find mobile_robots)/config/main.rviz" />
+
+</launch>
